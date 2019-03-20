@@ -1,2 +1,9 @@
+# gitignore these
 *.exe
 *.o
+*.ftp
+*.out
+*.gch
+# datafiles/
+.vscode/
+references/

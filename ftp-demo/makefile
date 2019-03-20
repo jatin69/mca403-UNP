@@ -1,4 +1,4 @@
-TARGET=client server infinite-server
+TARGET=client server 
 CC=gcc
 CFLAGS= -Wall -Wextra -g
 normal: $(TARGET)
