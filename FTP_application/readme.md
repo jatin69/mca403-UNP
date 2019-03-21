@@ -2,8 +2,18 @@
 
 Implementation of FTP client-server application as per RFC-959
 
+## todo list
+
+- read rfc959
+- figure out properties of stream sockets and block and compressed sockets
+- figure out why len is limited in TCP transmission
+- fix it then. Imp for file transfer
+- then test other codes you got in references
+
 ## Resources 
 
+- VM on Digital ocean `ssh root@139.59.79.252`
+- VM on Google cloud `ssh root@35.200.210.239`
 - Official FTP spec sheet rfc959 [here](https://www.w3.org/Protocols/rfc959/6_State.html)
 - [FTP commands](http://www.nsftools.com/tips/RawFTP.htm)
 

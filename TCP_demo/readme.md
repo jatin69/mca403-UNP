@@ -8,7 +8,7 @@ Refer [this resource](http://www.cs.rpi.edu/~moorthy/Courses/os98/Pgms/socket.ht
 - [X] infinite-server working locally
 - [ ] internet testing
   - [X] basic functionality
-  - [X] message length very long? Failing. Limit seems to be 113 bytes
+  - [X] message length very long? Failing. Limit seems to be 113/255 bytes
   - [ ] perfectly working
 - [ ] Stream sockets time outs for long message. Find alternative approach.
 
