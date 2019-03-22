@@ -4,11 +4,14 @@ Implementation of FTP client-server application as per RFC-959
 
 ## todo list
 
-- read rfc959
-- figure out properties of stream sockets and block and compressed sockets
-- figure out why len is limited in TCP transmission
-- fix it then. Imp for file transfer
-- then test other codes you got in references
+- [ ] read TCP and telnet spec
+- [ ] read rfc959 FTP spec
+- [ ] figure out properties of stream sockets and block and compressed sockets
+- [ ] figure out why len is limited in TCP transmission. MTU 1500 maybe? How can it be resolved.
+- [X] Test on 2 VMs. find a working code.
+- [ ] figure out why my system is not working. NAT ?
+- [ ] Connect my system directly to ethernet. Then try. This will confirm the NAT theory.
+- [ ] Then modify rfc code to remove HARD coded IP address.
 
 ## Resources 
 

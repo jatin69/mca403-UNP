@@ -18,6 +18,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <sstream>
+#include <arpa/inet.h>
+
 using namespace std;
 
 #define PR(x) cout << #x " = " << x << "\n";
@@ -316,6 +318,29 @@ int make_client_connection(const char *host, const char *port)
  */
 int make_client_connection_with_sockfd(int sock_fd, const char *host, const char *port)
 {
+	// new
+// 	stringstream strValue;
+// 	strValue << port;
+
+// 	int intport;
+// 	strValue >> intport;
+
+// 	struct sockaddr_in server_addr;
+//   	server_addr.sin_family = AF_INET;
+//   	server_addr.sin_port = htons(intport);
+
+//   inet_pton(AF_INET, host, &(server_addr.sin_addr));
+	cout << "\nhost is " << host << " and port is " << port << "\n";
+//   const int res = connect(
+//     sock_fd,
+//     reinterpret_cast<struct sockaddr*>(&server_addr),
+//     sizeof(server_addr));
+//   if (res == -1) {
+//    	cout << "FUCK Connect Error " << strerror(errno) << endl;
+// 		return -1;
+//   }
+
+	// old
 	struct addrinfo hints, *res;
 
 	// first, load up address structs with getaddrinfo():
@@ -324,6 +349,8 @@ int make_client_connection_with_sockfd(int sock_fd, const char *host, const char
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 	cout << "sock fd in make_client_connection_with_Sockfd is  " << sock_fd  << "\n";
+	
+	// pinpointed here - next 2 lines are causing - meh
 	getaddrinfo(host, port, &hints, &res);
 	// connect!
 	// cout << "Requested address is " << res->ai_addr->sa_data << endl;
@@ -511,7 +538,20 @@ int reverseportstring(string &in, string &ipstr, string &portstr)
 
 	if (cnt != 4)
 		return -1;
+		
 	ipstr = ip.substr(0, pos);
+
+	/*
+	Work in Progress [ WIP ]
+
+	this works with 2 VMs because both have static IPs
+	Fails in my router because it does not know how to route this from router to my system
+	it will work from my system to a VM when telnet works from VM to my system
+	*/
+	// ipstr = "35.200.210.239";	// Google cloud
+	// ipstr = "103.78.148.10";		// my system's IP for now
+	// ipstr = "139.59.79.252";		// Digital Ocean
+
 	string port = ip.substr(pos + 1);
 	int val = 0;
 	int i = 0;

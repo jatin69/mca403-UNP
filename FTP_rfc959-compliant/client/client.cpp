@@ -398,7 +398,7 @@ void getportstring(string ownip,string& portstr, string& port){
 	{
 		if(ownip[i] == '.') ownip[i] = ',';
 	}
-	int portnum = 40001 + rand() % 10;
+	int portnum = 9001 + rand() % 10;
 	string p1 = int2str(portnum/256);
 	string p2 = int2str(portnum%256);
 	portstr = "PORT "+ownip+","+p1+","+p2+"\r\n";
