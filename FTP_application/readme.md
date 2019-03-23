@@ -2,24 +2,6 @@
 
 Implementation of FTP client-server application as per RFC-959
 
-## todo list
-
-- [ ] read TCP and telnet spec
-- [ ] read rfc959 FTP spec
-- [ ] figure out properties of stream sockets and block and compressed sockets
-- [ ] figure out why len is limited in TCP transmission. MTU 1500 maybe? How can it be resolved.
-- [X] Test on 2 VMs. find a working code.
-- [ ] figure out why my system is not working. NAT ?
-- [ ] Connect my system directly to ethernet. Then try. This will confirm the NAT theory.
-- [ ] Then modify rfc code to remove HARD coded IP address.
-
-## Resources 
-
-- VM on Digital ocean `ssh root@139.59.79.252`
-- VM on Google cloud `ssh root@35.200.210.239`
-- Official FTP spec sheet rfc959 [here](https://www.w3.org/Protocols/rfc959/6_State.html)
-- [FTP commands](http://www.nsftools.com/tips/RawFTP.htm)
-
 ## Bare Minimum inclusions
 
 In order to make FTP workable without needless error messages, thefollowing minimum implementation is required for all servers:

@@ -1,9 +1,7 @@
-TARGET=server 
+TARGET=server infinite-server
 CC=gcc
 CFLAGS= -Wall -Wextra -g
 normal: $(TARGET)
-client: client.c
-	$(CC) $(CFLAGS) client.c -o client
 server: server.c
 	$(CC) $(CFLAGS) server.c -o server
 infinite-server: infinite-server.c

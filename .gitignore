@@ -1,9 +1,21 @@
-# gitignore these
+# Ignore everything
+*
+
+# Un-ignore everything with an extension
+!*.*
+
+# Unignore directories
+!*/
+
+# # Un-ignore makefile
+!makefile
+
+# Ignore these
 *.exe
 *.o
 *.ftp
 *.out
 *.gch
-# datafiles/
+
 .vscode/
 references/
