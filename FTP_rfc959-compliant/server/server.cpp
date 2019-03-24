@@ -1,3 +1,4 @@
+// header files - server.h
 #include <iostream>
 #include <string>
 #include <cstdio>
@@ -22,7 +23,7 @@
 
 using namespace std;
 
-#define PR(x) cout << #x " = " << x << "\n";
+#define PR(x) cout << #x << " = " << x << "\n";
 #define DEBUG 1
 #define LOG 1
 #define BACKLOG 100	// No. of backlog reqeusts
@@ -31,27 +32,33 @@ using namespace std;
 char *FTP_SERVER_CONTROL_PORT;
 char *FTP_SERVER_DATA_PORT;
 
+
+// utils - next 3 functions - util/trim.cpp
+
 // trim from start
-static inline std::string &ltrim(std::string &s)
-{
+static inline std::string &ltrim(std::string &s){
 	s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
 	return s;
 }
 
 // trim from end
-static inline std::string &rtrim(std::string &s)
-{
+static inline std::string &rtrim(std::string &s){
 	s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
 	return s;
 }
 
 // trim from both ends
-static inline std::string &trim(std::string &s)
-{
+static inline std::string &trim(std::string &s){
 	return ltrim(rtrim(s));
 }
 
-/**
+/********************************** FUNCTIONS ***********************************/
+
+/**VISITED.
+ * This is the normal BIND AND LISTEN. 
+ * CAN BE BROKEN IN 2 Parts. Code from socket-chat can be used.
+ * Return sockfd
+ * 
  * server_listen - bind to the supplied port and listen
  * @param  char* port - a string
  * @return int the fd if no error otherwise <0 value which indicates error
@@ -128,19 +135,22 @@ int server_listen(const char *port)
 	return sock_fd;
 }
 
-/**
+/**VISITED
+ * creates a new socket with supplied port on the server.
+ * Usage : when data is to be supplied with new port.
+ * 
+ * This is very similar to accept connection from client. Figure out diff. and replace shit.
  * Binds to the supplied port.
  * @param char * port 
  * @return socket descriptor
  */
-int bindsocket(const char *port)
-{
+int bindsocket(const char *port){
 	// Create address structs
 	struct addrinfo hints, *res;
 	int sock_fd;
 	// Load up address structs
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_UNSPEC;		// Shift to AF_INET
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
@@ -198,12 +208,14 @@ int bindsocket(const char *port)
 	return sock_fd;
 }
 
-/**
+/**VISITED. Should this be eliminated ?? Maybe. Not required in any near future.
+ * Because i'm gonna use AF_INET
+ * When the world is ready for migration. We'll modify the code at once to support IPv4
+ * 
  * A function wrapper to wrap both IPv4 and IPv6
  * @param  struct sockaddr *sa
  */
-void *get_in_addr(struct sockaddr *sa)
-{
+void *get_in_addr(struct sockaddr *sa){
 	if (sa->sa_family == AF_INET)
 	{
 		return &(((struct sockaddr_in *)sa)->sin_addr);
@@ -212,13 +224,12 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
-/**
+/**VISITED. Can be used as it is.
  * Accepts a client connection. The server fd is passed as a para
  * @param  server_fd
  * @return client_fd
  */
-int accept_connection(int server_fd)
-{
+int accept_connection(int server_fd){
 	struct sockaddr_storage their_addr; // connector's address information
 	char s[INET6_ADDRSTRLEN];
 	socklen_t sin_size = sizeof their_addr;
@@ -231,114 +242,48 @@ int accept_connection(int server_fd)
 		return -1;
 	}
 
-	// Print out IP address
+	// Print out IP address. Getting IP address of client
+	// remove get_in_addr by standard stuff
 	inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
 	printf("server: got connection from %s\n", s);
-	// Setting Timeout
+	
+	// Setting Timeout. WHY ? Required ? Can be removed.
 	struct timeval tv;
-	tv.tv_sec = 120; /* 120 Secs Timeout */
+	tv.tv_sec = 120; /* 120 Secs Timeout */ // default is 60 seconds
 	tv.tv_usec = 0;	// Not init'ing this can cause strange errors
 	setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
 	return client_fd;
 }
 
-/**
- * Creates socket, connects to remote host
+/**VISITED. Server initiates the connection on given port.
+ * connects to remote host using supplied sock_fd.
  * @param const char *host  - Host's domain name or IP address 
  * @param const char *port - The port to which we have to make connection. 
  * @returns fd of socket, <0 if error
  */
-int make_client_connection(const char *host, const char *port)
-{
-	// Create address structs
-	struct addrinfo hints, *res;
-	int sock_fd;
-
-	// Load up address structs
-	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	//fprintf(stderr, "%s %s\n", host, port);
-	int addr_status = getaddrinfo(host, port, &hints, &res);
-	if (addr_status != 0)
-	{
-		fprintf(stderr, "Cannot get address info\n");
-		return -1;
-	}
-
-	// Loop through results, connect to first one we can
-	struct addrinfo *p;
-	for (p = res; p != NULL; p = p->ai_next)
-	{
-		// Create the socket
-		sock_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-		if (sock_fd < 0)
-		{
-			perror("client: cannot open socket");
-			continue;
-		}
-
-		// Make connection
-		int connect_status = connect(sock_fd, p->ai_addr, p->ai_addrlen);
-		if (connect_status < 0)
-		{
-			close(sock_fd);
-			perror("client: connect");
-			continue;
-		}
-
-		// Bind the first one we can
-		break;
-	}
-
-	// No binds happened
-	if (p == NULL)
-	{
-		fprintf(stderr, "client: failed to connect\n");
-		return -2;
-	}
-
-	// Print out IP address
-	char s[INET6_ADDRSTRLEN];
-	inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), s, sizeof s);
-	//fprintf(stderr, "client: connecting to %s\n", s);
-
-	// Don't need the structure with address info any more
-	freeaddrinfo(res);
-	PR(sock_fd)
-	return sock_fd;
-}
-
-/**
- * connects to remote host using supplied sock_fd
- * @param const char *host  - Host's domain name or IP address 
- * @param const char *port - The port to which we have to make connection. 
- * @returns fd of socket, <0 if error
- */
-int make_client_connection_with_sockfd(int sock_fd, const char *host, const char *port)
-{
+int make_client_connection_with_sockfd(int sock_fd, const char *host, const char *port){
+	
 	// new
-// 	stringstream strValue;
-// 	strValue << port;
+	// 	stringstream strValue;
+	// 	strValue << port;
 
-// 	int intport;
-// 	strValue >> intport;
+	// 	int intport;
+	// 	strValue >> intport;
 
-// 	struct sockaddr_in server_addr;
-//   	server_addr.sin_family = AF_INET;
-//   	server_addr.sin_port = htons(intport);
+	// 	struct sockaddr_in server_addr;
+	//   	server_addr.sin_family = AF_INET;
+	//   	server_addr.sin_port = htons(intport);
 
-//   inet_pton(AF_INET, host, &(server_addr.sin_addr));
-	cout << "\nhost is " << host << " and port is " << port << "\n";
-//   const int res = connect(
-//     sock_fd,
-//     reinterpret_cast<struct sockaddr*>(&server_addr),
-//     sizeof(server_addr));
-//   if (res == -1) {
-//    	cout << "FUCK Connect Error " << strerror(errno) << endl;
-// 		return -1;
-//   }
+	//   inet_pton(AF_INET, host, &(server_addr.sin_addr));
+		cout << "\nhost is " << host << " and port is " << port << "\n";
+	//   const int res = connect(
+	//     sock_fd,
+	//     reinterpret_cast<struct sockaddr*>(&server_addr),
+	//     sizeof(server_addr));
+	//   if (res == -1) {
+	//    	cout << "FUCK Connect Error " << strerror(errno) << endl;
+	// 		return -1;
+	//   }
 
 	// old
 	struct addrinfo hints, *res;
@@ -364,61 +309,34 @@ int make_client_connection_with_sockfd(int sock_fd, const char *host, const char
 	return sock_fd;
 }
 
-/**
+/**VISITED. This function is doing a good Job.
+ * 
+ * Modify the wrapper initials to make work easier for us. 
+ * OR maybe make a wrapper for this wrapper. Name - Send
+ * Usage : Send(sockfd, "Initialising server");
+ * 
  * A wrapper function on send() socket all which tries to send all the data that is in the buffer
  * @param  int socket
  * @param  const void *buffer
  * @param  size_t length
  * @return
  */
-int send_all(int socket, const void *buffer, size_t length)
-{
+int send_all(int socket, const void *buffer, size_t length){
 	size_t i = 0;
-	for (i = 0; i < length;)
-	{
+	for (i = 0; i < length;){
 		int bytesSent = send(socket, buffer, length - i, MSG_NOSIGNAL);
-		if (bytesSent == -1)
-		{
+		if (bytesSent == -1){
 			return errno;
 		}
-		else
-		{
+		else{
 			i += bytesSent;
 		}
 	}
 	return 0;
 }
-/**
- * It receives the data from serverfd till /r/n
- * @param  serverfd 
- * @param  result   sets the output to result
- * @return          status code
- */
 
-int recvall(int serverfd, string &result)
-{
-	int len = 0;
-	while (1)
-	{
-		char buf[10001];
-		int bytesRead;
-		if ((bytesRead = recv(serverfd, buf, 10000, 0)) > 0)
-		{
-			result = string(buf, buf + bytesRead);
-			len += bytesRead;
-		}
-		else if (bytesRead < 0)
-		{
-			return -1;
-		}
-		else
-		{
-			return len;
-		}
-	}
-}
 
-/**
+/**VISITED. Nice function.
  * It receives the data from serverfd till socket is closed and writes the data to the given file.
  * @param int serverfd 
  * @param FILE - file descriptor of the file created
@@ -426,37 +344,31 @@ int recvall(int serverfd, string &result)
  * @return          status code
  */
 
-int recvallbinary(int serverfd, FILE *fd)
-{
+int recvallbinary(int serverfd, FILE *fd){
 	unsigned char buf[10001];
 	int bytesRead = 0;
 	int len = 0;
-	while ((bytesRead = recv(serverfd, buf, 10000, 0)) > 0)
-	{
+	while ((bytesRead = recv(serverfd, buf, 10000, 0)) > 0){
 		len += bytesRead;
 		fwrite(buf, 1, bytesRead, fd);
 	}
-	if (bytesRead < 0)
-	{
+	if (bytesRead < 0){
 		cerr << "Error Occurred";
 		return -1;
 	}
-	else
-	{
-
+	else{
 		return len;
 	}
 }
 
-/**
+/**VISITED. Almost perfect. Just a lil housekeeping is required.
  * A wrapper function on send() socket all which tries to send the supplied file in binary mode.
  * @param  int serverfd
  * @param  FILE *fd - The file descriptor of the file to be sent
  * @param  int size
  * @return -1 on error 0 on success
  */
-int sendallbinary(int serverfd, FILE *fd, int size)
-{
+int sendallbinary(int serverfd, FILE *fd, int size){
 	unsigned char buf[100001];
 	int bytesSent = 0;
 	while (size > 0)
@@ -474,19 +386,27 @@ int sendallbinary(int serverfd, FILE *fd, int size)
 }
 
 string remBuf;
-/**
+/**VISITED. Nice function.
+ * 
  * Receives one line(upto /r/n ) from serverfd.
  * @param  serverfd 
  * @param  result   - the received one line is assigned to result
  * @return  -1 on error, 0 on success.
  */
-int recvoneline(int serverfd, string &result)
-{
+int recvoneline(int serverfd, string &result){
+	
+	// transfer this constant to CONSTANTS
 	char buf[1001];
+
 	int bytesRead = 0;
+
+	// Notice how important is 'remBuf' here.
+	// try to remove it from global handler and make part of the function somehow.
 	result = remBuf;
-	do
-	{
+
+	// can be converted to a simple while loop
+	// SHIFT "\r\n" to LINE_DELIMETER constant
+	do{
 		result += string(buf, buf + bytesRead);
 		int pos = result.find("\r\n");
 		if (pos != string::npos)
@@ -498,17 +418,19 @@ int recvoneline(int serverfd, string &result)
 		}
 	} while ((bytesRead = recv(serverfd, buf, 1000, 0)) > 0);
 
-	if (bytesRead < 0)
-	{
+	if (bytesRead < 0){
 		cerr << "Error Occurred";
 		return -1;
 	}
-	else
-	{
+	else{
 		return 0;
 	}
 }
-/**
+
+/**VISITED. Can be probably simplified.
+ * 
+ * Converts PORT command format to nice and good variables.
+ * 
  * Gives the ip and port from the standard PORT command.
  * For eg. in = "PORT 127,0,0,1,35,40"
  * 			gives ipstr = "127.0.0.1" , portstr = "9000" (35*256 + 40)
@@ -517,10 +439,8 @@ int recvoneline(int serverfd, string &result)
  * @param  portstr - output port
  * @return -1 on error, 0 on success
  */
-int reverseportstring(string &in, string &ipstr, string &portstr)
-{
+int reverseportstring(string &in, string &ipstr, string &portstr){
 	int cnt = 0, pos;
-	;
 	string ip = in;
 	for (int i = 0; i < in.size(); ++i)
 	{
@@ -551,6 +471,7 @@ int reverseportstring(string &in, string &ipstr, string &portstr)
 	// ipstr = "35.200.210.239";	// Google cloud
 	// ipstr = "103.78.148.10";		// my system's IP for now
 	// ipstr = "139.59.79.252";		// Digital Ocean
+	// Use `curl ifconfig.me` to find IP address on the client machine
 
 	string port = ip.substr(pos + 1);
 	int val = 0;
@@ -579,13 +500,16 @@ int reverseportstring(string &in, string &ipstr, string &portstr)
 	portstr = ss.str();
 	return 0;
 }
-/**
+
+/**VISITED. Works Perfectly.
+ * 
+ * can also be used to create and delete directories.
  * executes a command and returns its output
  * @param const char *cmd  - command to execute
  * @return The output of the command
  */
-string exec(const char *cmd)
-{
+string exec(const char *cmd){
+
 	FILE *pipe = popen(cmd, "r");
 	if (!pipe)
 		return "ERROR";
@@ -599,75 +523,124 @@ string exec(const char *cmd)
 	pclose(pipe);
 	return result;
 }
-/**
+
+/**VISITED
+ * Function name needs renaming
+ * 
  * The main function handling FTP
  * @param clientControlfd - clients control socket fd
  */
-void doftp(int clientControlfd)
-{
+void doftp(int clientControlfd){
+
+	// I am now inside the server
+
+	// Will be replaced by Send(clientcontrolfd, "blah blah");
+	// be careful of the carriage return and newline
 	string progver = "220 (ftpserver0.1)\r\n";
 	send_all(clientControlfd, progver.c_str(), progver.size());
 
+
 	// Handling dummy authentication (This is done to conform to the RFC 959)
+	
+	/*
+		Implement authentication as commands. and do not give unathenticated access.
+		Maybe abstract this entire authentication part in a single function.
+
+	*/
+	// receive username from client
 	string username;
 	recvoneline(clientControlfd, username);
-	if (username.compare(0, strlen("USER"), "USER") == 0)
-	{
+
+	if (username.compare(0, strlen("USER"), "USER") == 0){
 		//do authentication
 		string res = "331 Please specify password\r\n";
 		send_all(clientControlfd, res.c_str(), res.size());
 		string password;
+
 		recvoneline(clientControlfd, password);
 		// do pass authentication.
 		res = "230 Login Successfuly\r\n";
 		send_all(clientControlfd, res.c_str(), res.size());
 	}
-	else
-	{
+	else{
 		string res = "430 Invalid Username\r\n";
 		send_all(clientControlfd, res.c_str(), res.size());
 	}
 
-	int clientDatafd = 0, datasocket = 0; // clientDatafd is for data connection, datasocket is the socketfd of the data server
-	int binarymode = 0;										// For binary mode
-	while (1)
-	{
+	/* *********** AUTHENTICATION IS NOW DONE **************** */
+	
+	// clientDatafd is for data connection, datasocket is the socketfd of the data server
+	int clientDatafd = 0, datasocket = 0; 
+	// For binary mode
+	int binarymode = 0;										
+
+	while (1){
 		string command;
-
-		// receive command 
+		
+		// receive command from client -> by getting one line from socket
+		// Size of that one line is hardcoded for now. Shift to constant.
 		recvoneline(clientControlfd, command);
+		// Also make a filter for command.
+		/*
+		LOGIC :
+		Make a enum for commands supported.
+		Make a function that returns the command used in current line
+		use enum in switch case because that's just an integer
 
-		if (command.compare(0, strlen("SYST"), "SYST") == 0)
-		{
+		Also make the actual line available, because we get arguments etc with command usually.
+		*/
+
+		// SHIFT THis if else river to a switch block using enum syntax
+
+		// not required. Remove maybe
+		if (command.compare(0, strlen("SYST"), "SYST") == 0){
+			// simpleStringSend
 			string res = "215 UNIX Type: L8\r\n";
 			send_all(clientControlfd, res.c_str(), res.size());
 		}
-		else if (command.compare(0, strlen("PORT"), "PORT") == 0)
-		{
-			string portstr = command.substr(4); // Getting the ipport string
+		// PORT h1,h2,h3,h4,p1,p2
+		// Binds server to supplied data port
+		// and client to supplied port by PORT command
+		// next connections will occur between these two dudes
+		// @todo figure out shit
+		// IT is OK to not use it in normal circumstances
+		// But we are following a convention where control and data ports are different
+
+		else if (command.compare(0, strlen("PORT"), "PORT") == 0){
+			string portstr = command.substr(4); // Getting the ip-port string
 			portstr = trim(portstr);
 			string ip, port;
 			reverseportstring(portstr, ip, port); // Parsing the string.
 
-			datasocket = bindsocket(FTP_SERVER_DATA_PORT); // binds server to supplied data port
+			// binds a socket with server's data port
+			datasocket = bindsocket(FTP_SERVER_DATA_PORT); 
 			cout << "Data socket is " << datasocket << "\n";
+			// then uses this socket to connect to remote host on a specific port
+		
 			clientDatafd = make_client_connection_with_sockfd(datasocket, ip.c_str(), port.c_str());
 			cout << "client Data FD is " << clientDatafd << "\n";
 			string res = "200 PORT command successful\r\n";
 			send_all(clientControlfd, res.c_str(), res.size());
 		}
-		else if (command.compare(0, strlen("LIST"), "LIST") == 0)
-		{
+		// similar to `ls` command on linux system 
+		else if (command.compare(0, strlen("LIST"), "LIST") == 0){
 			if (clientDatafd > 0)
 			{
 				string res = "150 Here comes the directory listing.\r\n";
 				send_all(clientControlfd, res.c_str(), res.size());
+				
 				res = exec("ls -l");
 				send_all(clientDatafd, res.c_str(), res.size());
+				
+				// Make wrappers - Close
+				// wrapper will do the resetting work
 				close(clientDatafd);
 				close(datasocket);
+				
+				// close data FD once work is done
 				clientDatafd = 0;
 				datasocket = 0;
+				
 				res = "226 Directory send OK.\r\n";
 				send_all(clientControlfd, res.c_str(), res.size());
 			}
@@ -677,16 +650,16 @@ void doftp(int clientControlfd)
 				send_all(clientControlfd, res.c_str(), res.size());
 			}
 		}
-		else if (command.compare(0, strlen("PWD"), "PWD") == 0)
-		{
+		// simple pwd
+		else if (command.compare(0, strlen("PWD"), "PWD") == 0){
 			char cwd[1024];
 			getcwd(cwd, sizeof(cwd));
 			string res(cwd);
 			res = "257 " + res + "\r\n";
 			send_all(clientControlfd, res.c_str(), res.size());
 		}
-		else if (command.compare(0, strlen("CWD"), "CWD") == 0)
-		{
+		// simple cd
+		else if (command.compare(0, strlen("CWD"), "CWD") == 0){
 			string path = command.substr(3);
 			path = trim(path);
 			int stat = chdir(path.c_str());
@@ -701,16 +674,15 @@ void doftp(int clientControlfd)
 				send_all(clientControlfd, res.c_str(), res.size());
 			}
 		}
-		else if (command.compare(0, strlen("TYPE I"), "TYPE I") == 0)
-		{
+		// switching to Binary Mode
+		else if (command.compare(0, strlen("TYPE I"), "TYPE I") == 0){
 			string res = "200 Switching to Binary mode.\r\n";
-			binarymode = 1;
+			binarymode = 1;	// is a dummy variable
 			send_all(clientControlfd, res.c_str(), res.size());
 		}
-		else if (command.compare(0, strlen("RETR"), "RETR") == 0)
-		{
-			if (clientDatafd <= 0)
-			{
+		else if (command.compare(0, strlen("RETR"), "RETR") == 0){
+			// should not be compulsory ideally. But maybe it is compulsory in our tactics
+			if (clientDatafd <= 0){
 				string res = "425 Use PORT first\r\n";
 				send_all(clientControlfd, res.c_str(), res.size());
 				continue;
@@ -752,8 +724,7 @@ void doftp(int clientControlfd)
 			send_all(clientControlfd, res.c_str(), res.size());
 			binarymode = 0;
 		}
-		else if (command.compare(0, strlen("STOR"), "STOR") == 0)
-		{
+		else if (command.compare(0, strlen("STOR"), "STOR") == 0){
 			if (clientDatafd <= 0)
 			{
 				string res = "425 Use PORT first\r\n";
@@ -783,50 +754,54 @@ void doftp(int clientControlfd)
 			send_all(clientControlfd, res.c_str(), res.size());
 			binarymode = 0;
 		}
-		else if (command.compare(0, strlen("QUIT"), "QUIT") == 0)
-		{
+		// quit. This should ideally only close client connection and not server process.
+		else if (command.compare(0, strlen("QUIT"), "QUIT") == 0){
+			// simpleStringSend
 			string res = "221 Goodbye.\r\n";
 			send_all(clientControlfd, res.c_str(), res.size());
+			// ? wait what ?
 			close(clientDatafd);
 			close(datasocket);
 			close(clientControlfd);
 			return;
 		}
-		else
-		{
+		// unknown command
+		else{
+			// simpleStringSend
 			string res = "500 Unknown command.\r\n";
 			send_all(clientControlfd, res.c_str(), res.size());
 		}
-	}
+	}	// end:while
 }
 
-int main(int argc, char **argv)
-{
-	if (argc == 3)
-	{
+// VISITED.
+int main(int argc, char **argv){
+
+	// get host and porn from command line arguments
+	if (argc == 3){
 		FTP_SERVER_CONTROL_PORT = argv[1];
 		FTP_SERVER_DATA_PORT = argv[2];
 	}
-	else
-	{
+	else{
 		cout << "The format is ./server <control port> <data port>" << endl;
 		cout << "If you are using ports <1024 , use sudo ./server <control port> <data port>" << endl;
 		exit(0);
 	}
 
 	// make server bind and listen to the supplied port
+	// Can be replaced by separated bind and listen from socket-chat code
 	int server_fd;
-	if ((server_fd = server_listen(FTP_SERVER_CONTROL_PORT)) < 0)
-	{
+	if ((server_fd = server_listen(FTP_SERVER_CONTROL_PORT)) < 0){
 		fprintf(stderr, "%s\n", "Error listening to given port");
 		return 0;
 	}
-
 	cout << "Server Listening at " << FTP_SERVER_CONTROL_PORT << endl;
 	// now start accept incoming connections:
 
-	while (1)
-	{
+	// Everything below this can be transferred to one single function.
+	// FTP_Server()
+	while (1){
+		// ACCEPT can be abstracted as in sc
 		int clientControlfd;
 		if ((clientControlfd = accept_connection(server_fd)) < 0)
 		{
@@ -834,16 +809,16 @@ int main(int argc, char **argv)
 		}
 		else
 		{
+			// creating new process to handle this request.
 			int pid = fork();
 
-			if (pid == 0)
-			{
+			if (pid == 0){
 				//child
 				doftp(clientControlfd);
 				close(clientControlfd);
 				return 0;
 			}
 		}
-	}
+	}	//end:while
 	return 0;
 }

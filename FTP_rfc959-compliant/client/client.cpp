@@ -1,3 +1,4 @@
+// header files
 #include <iostream>
 #include <string>
 #include <cstdio>
@@ -20,11 +21,14 @@
 #include <dirent.h>
 using namespace std;
 
-#define PR(x) cout << #x " = " << x << "\n";
+#define PR(x) cout << #x << " = " << x << "\n";
 #define LOG 1
 #define BACKLOG 100             // No. of backlog reqeusts
 #define BUFSIZE 2048			// BufferSize
 int debug;
+
+// UTILS
+
 // trim from start
 static inline std::string &ltrim(std::string &s) {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
@@ -42,8 +46,12 @@ static inline std::string &trim(std::string &s) {
         return ltrim(rtrim(s));
 }
 
-/**
- * server_listen - bind to the supplied port and listen
+/* ******************************* FUNCTIONS *****************************/
+
+
+/**VISITED.
+ * Usage: when data connection is used, a socket is binded to the pre-specified data port
+ * server_listen - bind a socket to the supplied port and listen
  * @param  char* port - a string
  * @return int the fd if no error otherwise <0 value which indicates error
  */
@@ -117,7 +125,7 @@ int server_listen(const char *port){
 	return sock_fd;
 }
 
-/**
+/** VISITED. Same as server. Probably can be removed
  * A function wrapper to wrap both IPv4 and IPv6
  * @param  struct sockaddr *sa
  */
@@ -130,7 +138,12 @@ void *get_in_addr (struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-/**
+/**VISITED. 
+ * Usage : when client is in listening mode & server dumps data
+ * Server is active and client is in passive mode here
+ * 
+ * Accept connection on this socket
+ * 
  * Accepts a client connection. The server fd is passed as a para
  * @param  server_fd
  * @return client_fd
@@ -150,7 +163,7 @@ int accept_connection(int server_fd){
 
 	// Print out IP address
 	inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr), s, sizeof s);
-	// printf("server: got connection from %s\n", s);
+	printf("server: got connection from %s\n", s);
 	// Setting Timeout
 	struct timeval tv;
 	tv.tv_sec = 120;  /* 120 Secs Timeout */
@@ -159,8 +172,11 @@ int accept_connection(int server_fd){
 	return client_fd;
 }
 
-/**
- * Creates socket, connects to remote host
+/** VISITED.
+ * Creates socket, connects to remote host.
+ * Here, client connects to server. Single usage.
+ * Can probably be broken down to pieces.
+ * 
  * @param const char *host  - Host's domain name or IP address 
  * @param const char *port - The port to which we have to make connection. 
  * @returns fd of socket, <0 if error
@@ -227,7 +243,7 @@ int make_client_connection (const char *host, const char *port)
   return sock_fd;
 }
 
-/**
+/** VISITED. Same as server
  * A wrapper function on send() socket all which tries to send all the data that is in the buffer
  * @param  int socket
  * @param  const void *buffer
@@ -246,8 +262,10 @@ int send_all(int socket,const void *buffer, size_t length) {
     }
     return 0;
 }
-/**
- * It receives the data from serverfd till /r/n
+
+/**VISITED.
+ * Used in ls command
+ * It receives all the data from the socket buffer
  * @param  serverfd 
  * @param  result   sets the output to result
  * @return          status code
@@ -269,7 +287,7 @@ int recvall(int serverfd, string& result){
 	}
 }
 
-/**
+/**VISITED. same as server
  * Receives data in binary mode and writes it to fd
  * @param  int serverfd 
  * @param  FILE *fd       
@@ -293,7 +311,7 @@ int recvallbinary(int serverfd, FILE *fd){
 	}
 }
 
-/**
+/**VISITED. Same as server
  * Sends the to serverfd using binary mode reading from fd and 
  * @param  serverfd 
  * @param  FILE *fd       
@@ -317,9 +335,8 @@ int sendallbinary(int serverfd, FILE *fd,int size){
 	return 0;	
 }
 
-
 string remBuf; // to handle buffer
-/**
+/**VISITED. Same as server
  * Receives one line from serverfd and stores it in result
  * @param  serverfd 
  * @param  result   
@@ -348,7 +365,8 @@ int recvoneline(int serverfd, string& result){
 	}
 	
 }
-/**
+
+/**VISITED. Same as server
  * To execute any system command
  * @param  cmd - command to be executed
  * @return  output of the command
@@ -365,7 +383,13 @@ string exec(const char* cmd) {
     pclose(pipe);
     return result;
 }
-/**
+
+/**VISITED. Nice function.
+ * 
+ * Used in only one place. Can probably be removed and merged there.
+ * Instead use : std::to_string(3.1415926);
+ * and compile with c++11 flag
+ * 
  * Converts int to string
  * @param  k - supplied integer
  * @return   string
@@ -375,8 +399,20 @@ string int2str(int k){
 	ss<<k;
 	return ss.str();
 }
-/**
- * Gives the ip of the current system on which this code is running
+
+/**VISITED. 
+ * This code returns the local-IP of client.
+ * 
+ * To communicate on internet, this should return its internet address hopefully.
+ * This can be done with curl command & exec function.
+ * Basically 3 Modes will be handled here.
+ * SELF system.
+ * LAN System.
+ * WAN system.
+ * Maybe take it from user which one he wants. -> BEST OPTION
+ * Other option is to detect from user input. Will be Buggy.
+ * 
+ * Gives the local ip of the current system on which this code is running
  * @param  m_sd - the socket descriptor
  * @return - ip string 
  */
@@ -387,7 +423,10 @@ string getownip(int m_sd){
 	return string(inet_ntoa( localAddress.sin_addr));
 }
 
-/**
+/**VISITED. Returns a string as per PORT command format
+ * This works fine. Just that it needs correct IP passed.
+ * // Needs a mechanism
+ * 
  * Selects a random port and gives its port string by assigning portstr and also giving port in port
  * @param ownip   - the supplied ip (Eg. 127.0.0.1 )
  * @param portstr - returned PORT command string. (Eg- PORT 127,0,0,1,35,40)
@@ -407,6 +446,7 @@ void getportstring(string ownip,string& portstr, string& port){
 }
 
 int main(int argc, char **argv){
+	// initialise remBuf -> Figure out its importance
 	remBuf="";
 	debug = 0;
 	if(argc<3){
@@ -420,8 +460,13 @@ int main(int argc, char **argv){
 			debug = 1;
 		}
 	}
+
+	// Starting work now
+
 	int serverfd;
 	if( (serverfd = make_client_connection(argv[1],argv[2]) ) > 0 ){
+		// server has now connected to client
+
 		// Sending out Authentication Information.
 		string res,user,pass;
 		recvoneline(serverfd,res);
@@ -447,6 +492,8 @@ int main(int argc, char **argv){
 			string userinput;
 			getline(std::cin,userinput);
 			ltrim(userinput);
+
+			// put command -> transfer happens in new process
 			if(userinput.compare(0,strlen("put"),"put") == 0){
 				//cout<<"put"<<endl;
 				int pid = fork();
@@ -468,7 +515,7 @@ int main(int argc, char **argv){
 						cout<<strerror(errno)<<endl;
 						continue;
 					}
-					// Switching to Binary Mode
+					// Switching to Binary Mode -> JUST A DUMMY
 					string typei = "TYPE I\r\n";
 					if(debug == 1) cout<<"Request: "<<typei<<endl;
 					send_all(serverfd,typei.c_str(),typei.size());
@@ -477,6 +524,7 @@ int main(int argc, char **argv){
 
 					// Getting a random port and corresponding PORT command
 					string portstr,port;
+					// Needs a mechanism
 					getportstring(getownip(serverfd),portstr,port);
 					
 					// Listening to data server
@@ -508,7 +556,9 @@ int main(int argc, char **argv){
 					return 0;
 
 				}
-			}else if(userinput.compare(0,strlen("get"),"get") == 0){
+			}
+			// get command -> transfer happens in new process
+			else if(userinput.compare(0,strlen("get"),"get") == 0){
 				cout<<"get"<<endl;
 				int pid = fork();
 				if(pid != 0){
@@ -528,6 +578,7 @@ int main(int argc, char **argv){
 
 					// Getting a random port and corresponding PORT command
 					string portstr,port;
+					// Needs a mechanism
 					getportstring(getownip(serverfd),portstr,port);
 					
 					// Listening to data server
@@ -567,7 +618,9 @@ int main(int argc, char **argv){
 					return 0;
 
 				}
-			}else if(userinput.compare(0,strlen("ls"),"ls") == 0){
+			}
+			// LIST command
+			else if(userinput.compare(0,strlen("ls"),"ls") == 0){
 				int pid = fork();
 				if(pid != 0){
 					int stat;
@@ -579,6 +632,8 @@ int main(int argc, char **argv){
 				}else{
 					//child which will receive data
 					string portstr,port;
+
+					// Needs a mechanism
 					getportstring(getownip(serverfd),portstr,port);
 					int dataportserverfd = server_listen(port.c_str());
 					if(debug == 1) cout<<"Request: "<<portstr<<endl;
@@ -599,7 +654,9 @@ int main(int argc, char **argv){
 					return 0;
 
 				}
-			}else if(userinput.compare(0,strlen("cd"),"cd") == 0){
+			}
+			// cd command
+			else if(userinput.compare(0,strlen("cd"),"cd") == 0){
 					cout<<"cd"<<endl;
 					string path = userinput.substr(2);
 					path = trim(path);
@@ -608,13 +665,17 @@ int main(int argc, char **argv){
 					send_all(serverfd,cwdstr.c_str(),cwdstr.size());
 					recvoneline(serverfd,res);
 					cout<<"Response: "<<res<<endl;
-			}else if(userinput.compare(0,strlen("pwd"),"pwd") == 0){
+			}
+			// pwd command
+			else if(userinput.compare(0,strlen("pwd"),"pwd") == 0){
 					string pwdstr = "PWD\r\n";
 					if(debug == 1) cout<<"Request: "<<pwdstr<<endl;
 					send_all(serverfd,pwdstr.c_str(),pwdstr.size());
 					recvoneline(serverfd,res);
 					cout<<"Response: "<<res<<endl;
-			}else if(userinput.compare(0,strlen("!ls"),"!ls") == 0){
+			}
+			// !ls
+			else if(userinput.compare(0,strlen("!ls"),"!ls") == 0){
 					DIR *dp;
 					struct dirent *ep;     
 					dp = opendir ("./");
@@ -626,7 +687,9 @@ int main(int argc, char **argv){
 					  }
 					  else
 					    perror ("Couldn't open the directory");
-			}else if(userinput.compare(0,strlen("!cd"),"!cd") == 0){
+			}
+			// !cd
+			else if(userinput.compare(0,strlen("!cd"),"!cd") == 0){
 					string path = userinput.substr(3);
 					path = trim(path);
 					int stat = chdir(path.c_str());
@@ -634,7 +697,9 @@ int main(int argc, char **argv){
 						cout<<"Directory Successfully Changed"<<endl;
 					else
 						cout<<strerror(errno)<<endl;
-			}else if(userinput.compare(0,strlen("!pwd"),"!pwd") == 0){
+			}
+			// !pwd
+			else if(userinput.compare(0,strlen("!pwd"),"!pwd") == 0){
 					cout<<"!pwd"<<endl;
 					char cwd[1024];
 			       if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -642,12 +707,18 @@ int main(int argc, char **argv){
 			       else
 			           perror("getcwd() error");
 
-			}else if(userinput.compare(0,strlen("quit"),"quit") == 0){
+			}
+			// quit 
+			else if(userinput.compare(0,strlen("quit"),"quit") == 0){
 					close(serverfd);
 					exit(0);
-			}else if(userinput.compare(0,strlen("help"),"help") == 0){
+			}
+			// help
+			else if(userinput.compare(0,strlen("help"),"help") == 0){
 					cout<<"Look at the README file supplied"<<endl;
-			}			else{
+			}
+			// default
+			else{
 				cout<<"UNKNOWN COMMAND"<<endl;	
 			}
 		}
