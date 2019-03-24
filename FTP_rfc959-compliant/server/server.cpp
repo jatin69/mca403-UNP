@@ -775,6 +775,9 @@ void doftp(int clientControlfd){
 			binarymode = 0;
 		}
 		else if (command.compare(0, strlen("STOR"), "STOR") == 0){
+			
+			// PORT is useless here. Server isn't sending anything
+			// PASV command makes more sense here.
 			if (clientDatafd <= 0)
 			{
 				string res = "425 Use PORT first\r\n";
