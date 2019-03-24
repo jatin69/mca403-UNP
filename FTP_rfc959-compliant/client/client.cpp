@@ -487,6 +487,14 @@ int main(int argc, char **argv){
 		cout<<"Response: "<<res<<endl;
 		//TODO - handle auth
 
+		/*
+			ADDON Implementation - 
+			Also implement a PORT command here, and keep track of previous command.
+			If user did not issue PORT command, use default [the way it is working right now]
+			Else, 
+			if the previous command was PORT, do not issue the explicit PORT command in each command
+		*/
+
 		while(1){
 			cout<<"ftp>";
 			string userinput;
@@ -582,8 +590,11 @@ int main(int argc, char **argv){
 					getportstring(getownip(serverfd),portstr,port);
 					
 					// Listening to data server
+					// i am a client and i want `get` at this port
+					// this port is random. client is free to choose any
 					int dataportserverfd = server_listen(port.c_str());
 					if(debug == 1) cout<<"Request: "<<portstr<<endl;
+					// you need to throw data at this IP and this port
 					send_all(serverfd,portstr.c_str(),portstr.size());
 					recvoneline(serverfd,res);
 					cout<<"Response: "<<res<<endl;
@@ -603,6 +614,8 @@ int main(int argc, char **argv){
 						close(dataportserverfd);
 						continue;
 					}
+					// server threws what we wanted
+					// we are accepting data at this IP and this port
 					int dataportclientfd = accept_connection(dataportserverfd);
 					
 					FILE * filew;
@@ -661,6 +674,28 @@ int main(int argc, char **argv){
 					string path = userinput.substr(2);
 					path = trim(path);
 					string cwdstr = "CWD "+path+"\r\n";
+					if(debug == 1) cout<<"Request: "<<cwdstr<<endl;
+					send_all(serverfd,cwdstr.c_str(),cwdstr.size());
+					recvoneline(serverfd,res);
+					cout<<"Response: "<<res<<endl;
+			}
+			// normal mkdir command
+			else if(userinput.compare(0,strlen("mkdir"),"mkdir") == 0){
+					cout<<"mkdir"<<endl;
+					string path = userinput.substr(5);
+					path = trim(path);
+					string cwdstr = "MKD "+path+"\r\n";
+					if(debug == 1) cout<<"Request: "<<cwdstr<<endl;
+					send_all(serverfd,cwdstr.c_str(),cwdstr.size());
+					recvoneline(serverfd,res);
+					cout<<"Response: "<<res<<endl;
+			}
+			// normal rmdir command
+			else if(userinput.compare(0,strlen("rmdir"),"rmdir") == 0){
+					cout<<"rmdir"<<endl;
+					string path = userinput.substr(5);
+					path = trim(path);
+					string cwdstr = "RMD "+path+"\r\n";
 					if(debug == 1) cout<<"Request: "<<cwdstr<<endl;
 					send_all(serverfd,cwdstr.c_str(),cwdstr.size());
 					recvoneline(serverfd,res);

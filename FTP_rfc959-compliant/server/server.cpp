@@ -20,6 +20,7 @@
 #include <dirent.h>
 #include <sstream>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -581,31 +582,31 @@ void doftp(int clientControlfd){
 		// Size of that one line is hardcoded for now. Shift to constant.
 		recvoneline(clientControlfd, command);
 		// Also make a filter for command.
-		/*
-		LOGIC :
-		Make a enum for commands supported.
-		Make a function that returns the command used in current line
-		use enum in switch case because that's just an integer
+		/* LOGIC : Make a enum for commands supported.
+			Make a function that returns the command used in current line
+			use enum in switch case because that's just an integer
 
-		Also make the actual line available, because we get arguments etc with command usually.
+			Also make the actual line available, because we get arguments etc with command usually.
+			// SHIFT THis if else river to a switch block using enum syntax
 		*/
-
-		// SHIFT THis if else river to a switch block using enum syntax
-
 		// not required. Remove maybe
 		if (command.compare(0, strlen("SYST"), "SYST") == 0){
 			// simpleStringSend
 			string res = "215 UNIX Type: L8\r\n";
 			send_all(clientControlfd, res.c_str(), res.size());
 		}
-		// PORT h1,h2,h3,h4,p1,p2
-		// Binds server to supplied data port
-		// and client to supplied port by PORT command
-		// next connections will occur between these two dudes
-		// @todo figure out shit
-		// IT is OK to not use it in normal circumstances
-		// But we are following a convention where control and data ports are different
+		/*	PORT h1,h2,h3,h4,p1,p2
+			Binds server to supplied data port
+			and client to supplied port by PORT command
+			next connections will occur between these two dudes
+			@todo figure out shit
+			IT is OK to not use it in normal circumstances
+			But we are following a convention where control and data ports are different.
 
+			It is not compulsory for user to provide this.
+			But in the backend. It is always used, either with default parameters, or with
+			explicit parameters
+		*/
 		else if (command.compare(0, strlen("PORT"), "PORT") == 0){
 			string portstr = command.substr(4); // Getting the ip-port string
 			portstr = trim(portstr);
@@ -613,10 +614,15 @@ void doftp(int clientControlfd){
 			reverseportstring(portstr, ip, port); // Parsing the string.
 
 			// binds a socket with server's data port
+			// i am a server, i want to transfer data
+			// create a socket for me on FTP_SERVER_DATA_PORT -> was supplied by user
+			// default is next to control-port [9000+1]
 			datasocket = bindsocket(FTP_SERVER_DATA_PORT); 
 			cout << "Data socket is " << datasocket << "\n";
 			// then uses this socket to connect to remote host on a specific port
-		
+
+			// make connection with client using this datasocket 
+			// and at this Ip and port. Here you will find receiver
 			clientDatafd = make_client_connection_with_sockfd(datasocket, ip.c_str(), port.c_str());
 			cout << "client Data FD is " << clientDatafd << "\n";
 			string res = "200 PORT command successful\r\n";
@@ -671,6 +677,50 @@ void doftp(int clientControlfd){
 			else
 			{
 				string res = "550 Failed to change directory.\r\n";
+				send_all(clientControlfd, res.c_str(), res.size());
+			}
+		}
+		// regular mkdir command
+		else if (command.compare(0, strlen("MKD"), "MKD") == 0){
+			string path = command.substr(3);
+			path = trim(path);
+			int stat = mkdir(path.c_str(), 0775);
+			if( stat!=0){
+				if(errno == EEXIST){
+					string res = "Directory already exists. \r\n";
+					send_all(clientControlfd, res.c_str(), res.size());
+				}
+				else{
+					string res = "Failed to create directory.\r\n";
+					send_all(clientControlfd, res.c_str(), res.size());	
+				}
+			}
+			else{
+				string res = "Directory " + path + " successfully created." + "\r\n";
+				send_all(clientControlfd, res.c_str(), res.size());
+			}
+		}
+		// regular rmd command - removes empty directories
+		else if (command.compare(0, strlen("RMD"), "RMD") == 0){
+			string path = command.substr(3);
+			path = trim(path);
+			int stat = rmdir(path.c_str());
+			if(stat!=0){
+				if(errno == EEXIST || errno == ENOTEMPTY){
+					string res = "Directory not empty. Can't be deleted. \r\n";
+					send_all(clientControlfd, res.c_str(), res.size());
+				}
+				else if(errno == ENOTDIR){
+					string res = "Not a directory. Can't be deleted. \r\n";
+					send_all(clientControlfd, res.c_str(), res.size());
+				}
+				else{
+					string res = "Failed to delete directory.\r\n";
+					send_all(clientControlfd, res.c_str(), res.size());	
+				}
+			}
+			else{
+				string res = "Directory " + path + " successfully deleted." + "\r\n";
 				send_all(clientControlfd, res.c_str(), res.size());
 			}
 		}
