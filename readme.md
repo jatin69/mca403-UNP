@@ -2,25 +2,36 @@
 
 Related coursework for mca403 - Unix Network Programming
 
-## TODO
+The major task was FTP implementation. This repo holds all the trials.
+
+## Resources
+
+- [Beej's guide to Network Programming](https://beej.us/guide/bgnet/html/multi/index.html)
+- [Tutorial based on Beej's guide](https://www.bogotobogo.com/cplusplus/sockets_server_client.php)
+- [RFC-793 TCP](https://tools.ietf.org/html/rfc793), [RFC-854 Telnet](https://tools.ietf.org/html/rfc854)
+- [RFC-959 FTP](https://www.w3.org/Protocols/rfc959/6_State.html)
+- [D. J. Bernstein's guide to FTP's practical Implemention](http://cr.yp.to/ftp.html)
+
+<details>
+   <summary>Click here to know more about the trials. </summary>
 
 ### Reading
 
-- [ ] read TCP, telnet spec and rfc959 FTP spec
+- [X] read TCP, telnet spec and rfc959 FTP spec
 - [ ] figure out properties of stream sockets and block and compressed sockets
-- [ ] figure out why len is limited in TCP transmission. MTU 1500 maybe? How can it be resolved.
+- [X] figure out why len is limited in TCP transmission. MTU 1500 maybe? How can it be resolved.
 
 ### Connection
 
 - [x] Test on 2 VMs. find a working code.
 - [x] Connect my system directly to ethernet. Then try. This will confirm the NAT theory. Tried. Not working. IDK WHY?
-- [ ] figure out why my system is not working. NAT ?
+- [X] figure out why my system is not working. NAT ?
 
 ### Coding
 
-- [ ] Modify rfc code to remove HARD coded IP address.
-- [ ] Read then entire code. Understand it, comment it.
-- [ ] Break it and start coding new app.
+- [X] Modify rfc code to remove HARD coded IP address.
+- [X] Read then entire code. Understand it, comment it.
+- [X] Break it and start coding new app.
 
 ## Resources
 
@@ -29,14 +40,6 @@ Related coursework for mca403 - Unix Network Programming
 - VM on Digital ocean `ssh root@139.59.79.252`
 - VM on Google cloud `ssh root@35.200.210.239`
 - Strangely enough. Things are not working on my wifi. Tried without the router as well. Even with single IP source, it says no route to host. Now before coding any solution, verify that `telnet <my system IP>` is working. This will tell if there's no path or connection refusing.
-
-### Docs
-
-- [Beej's guide to Network Programming](https://beej.us/guide/bgnet/html/multi/index.html)
-- [Tutorial based on Beej's guide](https://www.bogotobogo.com/cplusplus/sockets_server_client.php)
-- [RFC-793 TCP](https://tools.ietf.org/html/rfc793), [RFC-854 Telnet](https://tools.ietf.org/html/rfc854)
-- [RFC-959 FTP](https://www.w3.org/Protocols/rfc959/6_State.html)
-- [D. J. Bernstein's guide to FTP's practical Implemention](http://cr.yp.to/ftp.html)
 
 ### others
 
@@ -78,3 +81,6 @@ Related coursework for mca403 - Unix Network Programming
    3. Somehow has a transfer limit.
    4. Works as a tcp-demo hello-world app
    5. TODO : figure out why limit
+
+
+</details>
