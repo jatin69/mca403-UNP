@@ -101,6 +101,5 @@ int make_client_connection (const char *host, const char *port)
 
   // Don't need the structure with address info any more
   freeaddrinfo(res);
-
   return sock_fd;
 }
